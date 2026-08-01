@@ -21,7 +21,7 @@ git push -u origin main
 
 ```bash
 git add .
-git commit -m "feat: add custom recovery activities"
+git commit -m "feat: add recovery history and undo"
 git push
 ```
 

@@ -13,6 +13,7 @@ import {
   Database,
   Footprints,
   Headphones,
+  History,
   ListTodo,
   Maximize2,
   Minimize2,
@@ -236,6 +237,7 @@ function App() {
   const [subjectMenu, setSubjectMenu] = useState(false)
   const [immersive, setImmersive] = useState(false)
   const [showRecovery, setShowRecovery] = useState(false)
+  const [showRecoveryHistory, setShowRecoveryHistory] = useState(false)
   const [editingEnergyTask, setEditingEnergyTask] = useState(null)
   const [petEvent, setPetEvent] = useState(null)
   const [undoDelete, setUndoDelete] = useState(null)
@@ -446,6 +448,14 @@ function App() {
     showPetEvent(PET_EVENTS.recovered)
   }
 
+  function removeRecoveryLog(id) {
+    setRecoveryLogs((current) => current.filter((log) => log.id !== id))
+  }
+
+  function restoreRecoveryLog(log) {
+    setRecoveryLogs((current) => current.some((item) => item.id === log.id) ? current : [...current, log])
+  }
+
   function createCustomRecovery(activity) {
     const normalized = normalizeCustomRecovery(activity)
     if (!normalized) return
@@ -498,6 +508,7 @@ function App() {
             recoveryLogs={recoveryLogs}
             petEvent={petEvent}
             setShowRecovery={setShowRecovery}
+            setShowRecoveryHistory={setShowRecoveryHistory}
           />
         )}
         {view === 'tasks' && <TasksView tasks={tasks} toggleTask={toggleTask} deleteTask={deleteTask} setShowAdd={setShowAdd} onEditEnergy={setEditingEnergyTask} />}
@@ -507,6 +518,7 @@ function App() {
       <MobileNav view={view} setView={setView} />
       {showAdd && <AddTaskModal onClose={() => setShowAdd(false)} onAdd={addTask} />}
       {showRecovery && <RecoveryModal customActivities={customRecoveryActivities} onCreateCustom={createCustomRecovery} onDeleteCustom={deleteCustomRecovery} onRestoreCustom={restoreCustomRecovery} onClose={() => setShowRecovery(false)} onComplete={completeRecovery} />}
+      {showRecoveryHistory && <RecoveryHistoryModal recoveryLogs={recoveryLogs} tasks={tasks} onRemove={removeRecoveryLog} onRestore={restoreRecoveryLog} onClose={() => setShowRecoveryHistory(false)} onAddRecovery={() => { setShowRecoveryHistory(false); setShowRecovery(true) }} />}
       {editingEnergyTask && <EditTaskEnergyModal task={editingEnergyTask} onClose={() => setEditingEnergyTask(null)} onSave={updateTaskEnergy} />}
       {immersive && <FocusOverlay remaining={remaining} running={running} toggleTimer={toggleTimer} subject={subject} task={activeTask} onClose={() => setImmersive(false)} />}
       {undoDelete && <UndoToast task={undoDelete.task} onUndo={restoreDeletedTask} onDismiss={() => setUndoDelete(null)} />}
@@ -565,7 +577,7 @@ function Dashboard(props) {
     activeTask, tasks, selectedTask, setSelectedTask, todayMinutes, completedToday,
     weekData, toggleTask, setShowAdd, setView,
     dailyGoal, focusDuration, setFocusDuration, setImmersive, toggleTimer,
-    recoveryLogs, petEvent, setShowRecovery,
+    recoveryLogs, petEvent, setShowRecovery, setShowRecoveryHistory,
   } = props
   const progress = duration ? Math.min(1, Math.max(0, (duration - remaining) / duration)) : 0
   const ringStyle = { '--progress': `${progress * 360}deg`, '--subject': subject.color }
@@ -646,6 +658,7 @@ function Dashboard(props) {
           taskCount={openTasks.length}
           onAdjust={() => setView('tasks')}
           onRelax={() => setShowRecovery(true)}
+          onViewRecovery={() => setShowRecoveryHistory(true)}
         />
         <section className="panel goal-panel">
           <div><span>今日目标</span><strong>{Math.min(todayMinutes, dailyGoal)} / {dailyGoal} 分钟</strong></div>
@@ -667,7 +680,7 @@ function Dashboard(props) {
   )
 }
 
-function PetStatusPanel({ status, pressureValue, energyLoad, relief, taskCount, onAdjust, onRelax }) {
+function PetStatusPanel({ status, pressureValue, energyLoad, relief, taskCount, onAdjust, onRelax, onViewRecovery }) {
   const percentage = Math.min(100, pressureValue / DAILY_ENERGY_CAPACITY * 100)
   return (
     <section className={`pet-status-panel status-${status.tone || status.id}`} aria-labelledby="today-status-title">
@@ -683,7 +696,7 @@ function PetStatusPanel({ status, pressureValue, energyLoad, relief, taskCount, 
         <div className="energy-summary-head"><span>今日压力</span><strong>{pressureValue} / {DAILY_ENERGY_CAPACITY}</strong></div>
         <div className="energy-track" role="progressbar" aria-label="今日压力" aria-valuemin="0" aria-valuemax={DAILY_ENERGY_CAPACITY} aria-valuenow={Math.min(DAILY_ENERGY_CAPACITY, pressureValue)}><span style={{ width: `${percentage}%` }} /></div>
         <div className="pressure-detail"><span>任务负荷 {energyLoad}</span><i aria-hidden="true" /><span>已减压 {relief}</span><i aria-hidden="true" /><span>{taskCount ? `${taskCount} 项待办` : '没有待办'}</span></div>
-        <div className="pressure-actions"><button type="button" onClick={onAdjust}>调整任务</button><button className="relief-button" type="button" onClick={onRelax}>放松减压</button></div>
+        <div className="pressure-actions"><button className="history-button" type="button" onClick={onViewRecovery}><History size={15} />查看记录</button><button type="button" onClick={onAdjust}>调整任务</button><button className="relief-button" type="button" onClick={onRelax}>放松减压</button></div>
       </div>
     </section>
   )
@@ -692,12 +705,12 @@ function PetStatusPanel({ status, pressureValue, energyLoad, relief, taskCount, 
 function PetIllustration({ mood }) {
   const moodLabel = { ready: '准备陪你学习', focus: '认真专注', celebrate: '开心庆祝', relaxed: '放松休息', tired: '有点疲惫', overload: '压力太大哭了' }[mood] || '准备陪你学习'
   const positions = {
-    ready: '0% 0%',
-    focus: '50% 0%',
-    celebrate: '100% 0%',
-    relaxed: '0% 100%',
-    tired: '50% 100%',
-    overload: '100% 100%',
+    ready: '5.8% 5.5%',
+    focus: '50.4% 7.2%',
+    celebrate: '96.2% 6.3%',
+    relaxed: '5.3% 97.5%',
+    tired: '49.9% 98%',
+    overload: '96.7% 99.4%',
   }
   return (
     <div className={`pet-illustration pet-${mood || 'ready'}`} role="img" aria-label={`妙脆角猫：${moodLabel}`}>
@@ -1122,6 +1135,71 @@ function RecoveryModal({ customActivities, onCreateCustom, onDeleteCustom, onRes
         <div className="recovery-summary"><span>本次减压</span><strong>-{selected.relief}</strong></div>
         <div className="modal-actions"><button type="button" className="text-button" onClick={onClose}>稍后再说</button><button className="primary-button" type="submit" disabled={showCustomEditor}>完成并减压</button></div>
       </form>
+    </div>
+  )
+}
+
+function RecoveryHistoryModal({ recoveryLogs, tasks, onRemove, onRestore, onClose, onAddRecovery }) {
+  const [removedLog, setRemovedLog] = useState(null)
+  useEscapeClose(onClose)
+
+  useEffect(() => {
+    if (!removedLog) return
+    const timeout = window.setTimeout(() => setRemovedLog(null), 10000)
+    return () => window.clearTimeout(timeout)
+  }, [removedLog])
+
+  const todayLogs = recoveryLogs
+    .filter((log) => log.date === getDayKey())
+    .sort((a, b) => Number(b.id) - Number(a.id))
+  const energyLoad = tasks
+    .filter((task) => !task.completed)
+    .reduce((sum, task) => sum + getTaskEnergy(task), 0)
+  const recordedRelief = todayLogs.reduce((sum, log) => sum + Number(log.relief || 0), 0)
+  const appliedRelief = Math.min(energyLoad, recordedRelief)
+  const pressureValue = Math.max(0, energyLoad - appliedRelief)
+
+  function removeLog(log) {
+    onRemove(log.id)
+    setRemovedLog(log)
+  }
+
+  function restoreLog() {
+    if (!removedLog) return
+    onRestore(removedLog)
+    setRemovedLog(null)
+  }
+
+  function formatLogTime(log) {
+    const timestamp = Number(log.id)
+    if (!Number.isFinite(timestamp) || timestamp < 1000000000000) return '今天'
+    return new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(timestamp))
+  }
+
+  return (
+    <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section className="modal recovery-history-modal" role="dialog" aria-modal="true" aria-labelledby="recovery-history-title">
+        <div className="modal-head"><div><h2 id="recovery-history-title">今日减压记录</h2><p>撤销后，该次减压会立即从今日压力中移除。</p></div><button type="button" className="icon-button small" aria-label="关闭今日减压记录" onClick={onClose}><X size={19} /></button></div>
+        <div className="recovery-history-equation" aria-label={`任务负荷 ${energyLoad}，已抵扣减压 ${appliedRelief}，当前压力 ${pressureValue}`}>
+          <span><small>任务负荷</small><strong>{energyLoad}</strong></span><Minus size={17} aria-hidden="true" /><span><small>已抵扣减压</small><strong>{appliedRelief}</strong></span><span className="equation-mark" aria-hidden="true">=</span><span><small>当前压力</small><strong>{pressureValue}</strong></span>
+        </div>
+        {todayLogs.length ? (
+          <div className="recovery-history-list" aria-label="今日减压记录列表">
+            {todayLogs.map((log) => (
+              <div className="recovery-history-row" key={log.id}>
+                <span className="recovery-log-icon" aria-hidden="true"><History size={18} /></span>
+                <span className="recovery-log-copy"><strong>{log.label}</strong><small>{formatLogTime(log)} · {log.minutes} 分钟</small></span>
+                <strong className="recovery-log-value">-{Number(log.relief || 0)}</strong>
+                <button type="button" onClick={() => removeLog(log)}>撤销</button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="recovery-history-empty"><History size={24} /><strong>今天还没有减压记录</strong><p>完成一项真实的放松后，记录会出现在这里。</p><button type="button" className="secondary-button" onClick={onAddRecovery}>去放松减压</button></div>
+        )}
+        {removedLog && <div className="custom-recovery-undo" role="status" aria-live="polite"><span>已撤销“{removedLog.label}”</span><button type="button" onClick={restoreLog}><Undo2 size={15} />恢复</button></div>}
+        <div className="recovery-history-foot"><span>今日共 {todayLogs.length} 条，记录减压 {recordedRelief} 点</span><button type="button" className="text-button" onClick={onClose}>关闭</button></div>
+      </section>
     </div>
   )
 }

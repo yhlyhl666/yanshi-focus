@@ -32,7 +32,7 @@ custom properties.
 
 - Wordmark: Song-style display serif, weight 700, used only for the brand.
 - Interface: Microsoft YaHei UI / Noto Sans SC, weight 400-700.
-- Timer and data: Cascadia Mono fallback stack with tabular numerals.
+- Timer and compact data: interface sans with tabular numerals, so every zero stays open and dot-free.
 - Letter spacing: 0 throughout.
 - Headings stay compact and upright; no motivational display copy.
 

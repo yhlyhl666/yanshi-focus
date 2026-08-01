@@ -3,15 +3,28 @@ import os from 'node:os'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
 
-const executable = process.env.DESKTOP_EXE || path.resolve('release', 'win-unpacked', '研时.exe')
+const webUrl = process.env.WEB_URL
+const useDevElectron = process.env.DEV_ELECTRON === '1'
+const executable = webUrl
+  ? process.env.BROWSER_EXE || 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+  : useDevElectron
+    ? path.resolve('node_modules', 'electron', 'dist', 'electron.exe')
+  : process.env.DESKTOP_EXE || path.resolve('release', 'win-unpacked', '研时.exe')
 const port = 9335
 const profileDir = await fs.mkdtemp(path.join(os.tmpdir(), 'yanshi-render-check-'))
 const screenshotPath = path.resolve('work', 'desktop-render-check.png')
 const compactScreenshotPath = path.resolve('work', 'desktop-render-check-980x680.png')
 const settingsScreenshotPath = path.resolve('work', 'desktop-render-settings-980x680.png')
 const statsScreenshotPath = path.resolve('work', 'desktop-render-stats-980x680.png')
-const child = spawn(executable, [`--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`], {
-  cwd: path.dirname(executable),
+const recoveryScreenshotPath = path.resolve('work', 'desktop-render-recovery-history.png')
+const mobileScreenshotPath = path.resolve('work', 'mobile-render-check-375x812.png')
+const launchArgs = webUrl
+  ? [`--headless=new`, `--disable-gpu`, `--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`, `--window-size=1360,860`, webUrl]
+  : useDevElectron
+    ? [`.`, `--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`]
+  : [`--remote-debugging-port=${port}`, `--user-data-dir=${profileDir}`]
+const child = spawn(executable, launchArgs, {
+  cwd: webUrl || useDevElectron ? process.cwd() : path.dirname(executable),
   stdio: ['ignore', 'pipe', 'pipe'],
   windowsHide: false,
 })
@@ -103,6 +116,99 @@ try {
   const compactScreenshot = await command('Page.captureScreenshot', { format: 'png' })
   await fs.writeFile(compactScreenshotPath, Buffer.from(compactScreenshot.data, 'base64'))
 
+  const recoveryEvaluation = await command('Runtime.evaluate', {
+    expression: `new Promise((resolve) => {
+      const clickButton = (label) => {
+        const button = [...document.querySelectorAll('button')].find((item) => item.textContent.trim() === label);
+        button?.click();
+        return Boolean(button);
+      };
+      const timerFont = getComputedStyle(document.querySelector('.timer-inner strong')).fontFamily;
+      const catPosition = document.querySelector('.pet-illustration > span')?.style.backgroundPosition;
+      const historyOpenedEmpty = clickButton('查看记录');
+      setTimeout(() => {
+        const emptyStateVisible = document.body.innerText.includes('今天还没有减压记录');
+        clickButton('关闭');
+        clickButton('放松减压');
+        setTimeout(() => {
+          const recoveryOpened = document.body.innerText.includes('给大脑松松绑');
+          clickButton('完成并减压');
+          setTimeout(() => {
+            const pressureAfterRecovery = document.querySelector('.energy-summary-head strong')?.textContent.trim();
+            clickButton('查看记录');
+            setTimeout(() => {
+              const recordVisible = document.body.innerText.includes('拉伸肩颈') && document.body.innerText.includes('今日共 1 条');
+              clickButton('撤销');
+              setTimeout(() => {
+                const pressureAfterUndo = document.querySelector('.energy-summary-head strong')?.textContent.trim();
+                const undoVisible = document.body.innerText.includes('已撤销“拉伸肩颈”');
+                clickButton('恢复');
+                setTimeout(() => resolve({
+                  timerFont,
+                  catPosition,
+                  historyOpenedEmpty,
+                  emptyStateVisible,
+                  recoveryOpened,
+                  recordVisible,
+                  pressureAfterRecovery,
+                  pressureAfterUndo,
+                  restored: document.body.innerText.includes('今日共 1 条') && document.body.innerText.includes('拉伸肩颈')
+                }), 100);
+              }, 100);
+            }, 100);
+          }, 100);
+        }, 100);
+      }, 100);
+    })`,
+    awaitPromise: true,
+    returnByValue: true,
+  })
+  const recovery = recoveryEvaluation.result.value
+  const recoveryScreenshot = await command('Page.captureScreenshot', { format: 'png' })
+  await fs.writeFile(recoveryScreenshotPath, Buffer.from(recoveryScreenshot.data, 'base64'))
+
+  await command('Runtime.evaluate', { expression: "[...document.querySelectorAll('button')].find((item) => item.textContent.trim() === '关闭')?.click()" })
+  await delay(100)
+
+  await command('Emulation.setDeviceMetricsOverride', { width: 375, height: 812, deviceScaleFactor: 1, mobile: true })
+  await delay(150)
+  const mobileLayoutEvaluation = await command('Runtime.evaluate', {
+    expression: `({
+      viewport: { width: innerWidth, height: innerHeight },
+      horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      sidebarHidden: getComputedStyle(document.querySelector('.sidebar')).display === 'none',
+      mobileNavVisible: getComputedStyle(document.querySelector('.mobile-nav')).display !== 'none'
+    })`,
+    returnByValue: true,
+  })
+  const mobileLayout = mobileLayoutEvaluation.result.value
+  const mobileScreenshot = await command('Page.captureScreenshot', { format: 'png' })
+  await fs.writeFile(mobileScreenshotPath, Buffer.from(mobileScreenshot.data, 'base64'))
+
+  const responsiveLayouts = []
+  for (const width of [320, 414, 768]) {
+    await command('Emulation.setDeviceMetricsOverride', { width, height: 812, deviceScaleFactor: 1, mobile: true })
+    await delay(100)
+    const evaluation = await command('Runtime.evaluate', {
+      expression: `({ width: innerWidth, horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth })`,
+      returnByValue: true,
+    })
+    responsiveLayouts.push(evaluation.result.value)
+  }
+
+  await command('Emulation.setDeviceMetricsOverride', { width: 812, height: 375, deviceScaleFactor: 1, mobile: true })
+  await delay(150)
+  const landscapeLayoutEvaluation = await command('Runtime.evaluate', {
+    expression: `({
+      viewport: { width: innerWidth, height: innerHeight },
+      horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
+    })`,
+    returnByValue: true,
+  })
+  const landscapeLayout = landscapeLayoutEvaluation.result.value
+  await command('Emulation.clearDeviceMetricsOverride')
+  await delay(150)
+
   const interactionEvaluation = await command('Runtime.evaluate', {
     expression: `new Promise((resolve) => {
       const clickButton = (label) => {
@@ -177,7 +283,23 @@ try {
     && compactLayout.timerWidth > 300
     && compactLayout.contextWidth > 300
     && compactLayout.sidebarVisible
-  console.log({ executable, screenshotPath, compactScreenshotPath, settingsScreenshotPath, statsScreenshotPath, rendered: { ...rendered, text: rendered.text.slice(0, 180) }, compactLayout, interactions })
+    && !recovery.timerFont.includes('Cascadia')
+    && ['5.8% 5.5%', '50.4% 7.2%', '96.2% 6.3%', '5.3% 97.5%', '49.9% 98%', '96.7% 99.4%'].includes(recovery.catPosition)
+    && recovery.historyOpenedEmpty
+    && recovery.emptyStateVisible
+    && recovery.recoveryOpened
+    && recovery.recordVisible
+    && recovery.pressureAfterRecovery === '6 / 10'
+    && recovery.pressureAfterUndo === '7 / 10'
+    && recovery.restored
+    && mobileLayout.viewport.width === 375
+    && !mobileLayout.horizontalOverflow
+    && mobileLayout.sidebarHidden
+    && mobileLayout.mobileNavVisible
+    && responsiveLayouts.every((layout) => !layout.horizontalOverflow)
+    && landscapeLayout.viewport.width === 812
+    && !landscapeLayout.horizontalOverflow
+  console.log({ executable, screenshotPath, compactScreenshotPath, recoveryScreenshotPath, mobileScreenshotPath, settingsScreenshotPath, statsScreenshotPath, rendered: { ...rendered, text: rendered.text.slice(0, 180) }, compactLayout, mobileLayout, responsiveLayouts, landscapeLayout, recovery, interactions })
   if (!passed) throw new Error('Desktop renderer or core settings/statistics interactions failed')
   console.log('Desktop render check passed')
 } finally {
@@ -185,7 +307,7 @@ try {
     socket.send(JSON.stringify({ id: nextId, method: 'Browser.close', params: {} }))
   }
   socket?.close()
-  await delay(500)
   if (!child.killed) child.kill()
-  await fs.rm(profileDir, { recursive: true, force: true })
+  await delay(1000)
+  await fs.rm(profileDir, { recursive: true, force: true, maxRetries: 3, retryDelay: 250 }).catch(() => {})
 }

@@ -44,8 +44,8 @@
 
   --font-display: "STZhongsong", "Songti SC", "SimSun", serif;
   --font-body: "Microsoft YaHei UI", "Noto Sans SC", sans-serif;
-  --font-mono: "Cascadia Mono", "SFMono-Regular", monospace;
-  --font-timer: var(--font-mono);
+  --font-mono: var(--font-body);
+  --font-timer: var(--font-body);
 
   --text-2xs: 0.625rem;
   --text-xs: 0.75rem;
