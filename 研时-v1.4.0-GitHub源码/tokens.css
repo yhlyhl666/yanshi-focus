@@ -1,0 +1,106 @@
+:root {
+  --color-paper: oklch(96.2% 0.014 92);
+  --color-paper-raised: oklch(98.7% 0.009 92);
+  --color-paper-soft: oklch(94.6% 0.018 92);
+  --color-paper-muted: oklch(92.8% 0.022 92);
+  --color-ink: oklch(22% 0.014 150);
+  --color-ink-2: oklch(34% 0.014 150);
+  --color-muted: oklch(48% 0.012 150);
+  --color-faint: oklch(62% 0.01 150);
+  --color-rule: oklch(86.5% 0.014 92);
+  --color-rule-strong: oklch(77% 0.018 92);
+  --color-accent: oklch(63% 0.18 31);
+  --color-accent-hover: oklch(57% 0.19 31);
+  --color-accent-soft: oklch(94% 0.035 31);
+  --color-accent-wash: oklch(97% 0.018 31);
+  --color-accent-ink: oklch(98.5% 0.005 31);
+  --color-success: oklch(50% 0.1 166);
+  --color-success-hover: oklch(43% 0.095 166);
+  --color-success-soft: oklch(94% 0.025 166);
+  --color-success-wash: oklch(97% 0.014 166);
+  --color-warning: oklch(61% 0.13 78);
+  --color-warning-soft: oklch(95% 0.035 78);
+  --color-warning-ink: oklch(42% 0.08 78);
+  --color-info: oklch(54% 0.08 252);
+  --color-info-wash: oklch(97% 0.014 252);
+  --color-error: oklch(55% 0.18 28);
+  --color-focus: oklch(48% 0.12 166);
+  --color-chart-track: oklch(90.2% 0.015 92);
+  --color-subject-math: oklch(63% 0.18 31);
+  --color-subject-english: oklch(50% 0.1 166);
+  --color-subject-politics: oklch(65% 0.13 78);
+  --color-subject-major: oklch(54% 0.08 252);
+  --color-overlay: oklch(16% 0.014 150 / 0.58);
+  --color-focus-overlay-top: oklch(16% 0.014 150 / 0.34);
+  --color-focus-overlay-bottom: oklch(12% 0.014 150 / 0.66);
+  --color-on-image: oklch(98% 0.006 95);
+  --color-on-image-rule: oklch(98% 0.006 95 / 0.5);
+  --color-on-image-surface: oklch(12% 0.014 150 / 0.38);
+  --color-on-image-surface-hover: oklch(12% 0.014 150 / 0.58);
+  --color-shadow-whisper: oklch(20% 0.014 150 / 0.06);
+  --color-shadow-raised: oklch(20% 0.014 150 / 0.14);
+  --color-shadow-accent: oklch(63% 0.18 31 / 0.18);
+  --color-transparent: oklch(100% 0 0 / 0);
+
+  --font-display: "STZhongsong", "Songti SC", "SimSun", serif;
+  --font-body: "Microsoft YaHei UI", "Noto Sans SC", sans-serif;
+  --font-mono: "Cascadia Mono", "SFMono-Regular", monospace;
+  --font-timer: var(--font-mono);
+
+  --text-2xs: 0.625rem;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.625rem;
+  --text-timer: 3.5rem;
+  --text-focus-timer: 7rem;
+
+  --space-3xs: 0.125rem;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 2.5rem;
+  --space-3xl: 4rem;
+
+  --control-sm: 2.75rem;
+  --control-md: 2.75rem;
+  --control-lg: 3rem;
+  --control-primary: 3.25rem;
+  --sidebar-width: 13.25rem;
+  --topbar-height: 5.25rem;
+  --content-max: 75rem;
+  --page-max: 61rem;
+  --timer-ring-size: 15.25rem;
+  --timer-ring-width: 0.5rem;
+  --icon-sm: 1rem;
+  --icon-md: 1.25rem;
+
+  --radius-xs: 0.5rem;
+  --radius-sm: 0.75rem;
+  --radius-md: 1.125rem;
+  --radius-round: 999px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms;
+  --dur-menu: 180ms;
+  --dur-modal: 220ms;
+
+  --shadow-whisper: 0 1px 2px var(--color-shadow-whisper);
+  --shadow-raised: 0 1rem 2.5rem var(--color-shadow-raised);
+  --shadow-accent: 0 0.625rem 1.25rem var(--color-shadow-accent);
+
+  --z-base: 1;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 400;
+  --z-toast: 500;
+}
